@@ -17,12 +17,12 @@
     "env:check:build": "esbuild src/server/env-check.ts --bundle --platform=node --format=esm --outfile=dist/env-check.mjs"
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.6",
+    "@astrojs/node": "^11.1.7",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
-    "astro": "^7.3.5",
-    "dotenv": "^18.0.5",
-    "hono": "^4.13.12",
+    "astro": "^7.3.7",
+    "dotenv": "^18.0.6",
+    "hono": "^4.13.13",
     "ioredis": "^6.0.0",
     "pg": "^8.23.1",
     "prisma": "^7.10.0"
@@ -32,7 +32,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.4",
     "@types/pg": "^8.23.1",
-    "@typescript-eslint/parser": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.1",
     "astro-eslint-parser": "^3.2.0",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
@@ -43,7 +43,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.0",
+    "typescript-eslint": "^8.71.1",
     "vitest": "^5.0.3"
   }
 }
