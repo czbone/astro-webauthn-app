@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// 認証サーバーが所有する共有テーブルの読み取り投影。
+/// password / role / パスキー材料はマップしない。マイグレーションは行わない。
+model User {
+  id          String               @id
+  email       String
+  name        String
+  credentials WebAuthnCredential[]
+  grants      AppGrant[]
+}
+
+model App {
+  id           String     @id
+  name         String
+  origin       String
+  redirectUris String[]
+  grants       AppGrant[]
+}
+
+model AppGrant {
+  id         String @id
+  userId     String
+  appId      String
+  permission String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  app        App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, appId])
+  @@index([appId])
+}
+
+model WebAuthnCredential {
+  id     String @id
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

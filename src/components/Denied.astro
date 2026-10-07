@@ -1,0 +1,22 @@
+---
+interface Props {
+  message: string
+  logout?: boolean
+}
+
+const { message, logout = false } = Astro.props
+import LogoutForm from '@/components/LogoutForm.astro'
+---
+
+<p class="text-gray-800">{message}</p>
+{logout ? (
+  <div class="mt-6">
+    <LogoutForm />
+  </div>
+) : (
+  <p class="mt-6">
+    <a class="text-blue-700 underline" href="/">
+      ホームへ戻る
+    </a>
+  </p>
+)}

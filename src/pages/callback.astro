@@ -1,0 +1,14 @@
+---
+import { clearHandoffCookie, setSessionCookie } from '@/server/auth/cookies'
+import { consumeHandoff } from '@/server/auth/handoff'
+import { handoffFailureResponse, redirectNoStore } from '@/server/auth/responses'
+import { participantEnv } from '@/server/env'
+
+const result = await consumeHandoff(Astro.request)
+clearHandoffCookie()
+if (result.ok) {
+  setSessionCookie(result.token, participantEnv.sessionMaxAgeSeconds())
+  return redirectNoStore(result.returnPath, 303)
+}
+return handoffFailureResponse()
+---

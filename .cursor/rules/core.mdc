@@ -1,0 +1,26 @@
+---
+description: スタック、配置、スタイル、仕様の正本
+alwaysApply: true
+---
+
+# コア規約
+
+- これは認証サーバー [astro-user-webauthn2](https://github.com/czbone/astro-user-webauthn2) の参加アプリ。Astro 7 SSR + Node アダプター。画面はサーバー描画の HTML。
+- Prisma 7 は共有テーブルの読み取り専用。セッションは Redis（`GET` / `GETDEL` / `EXPIRE` / `DEL` / `SREM` のみ）。
+- 更新は Hono の `POST /logout` だけ。パスキー儀式、メール、ユーザー作成は持たない。
+- スタイルは Tailwind CSS 4。パッケージマネージャは pnpm。
+- 仕様の正本: 認証サーバーの `planning/participant-app.md` と `planning/multi-app-auth.md`。
+
+## 配置
+
+- ページ: `src/pages` / レイアウト: `src/layouts` / サーバー処理: `src/server`
+- エントリは `src/fetch.ts`。`middleware()` → `POST /logout` → `actions()` → `pages()` の順を崩さない。
+
+## スタイル
+
+- インポートは `@/*`。TypeScript strict。`any` 禁止。
+- セミコロンなし、シングルクォート。UI / エラーメッセージは日本語。
+
+## コマンド
+
+`pnpm dev` / `pnpm lint` / `pnpm test` / `pnpm build` / `pnpm db:generate`

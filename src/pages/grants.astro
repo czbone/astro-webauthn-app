@@ -1,0 +1,61 @@
+---
+import Layout from '@/layouts/MainLayout.astro'
+import Denied from '@/components/Denied.astro'
+import LogoutForm from '@/components/LogoutForm.astro'
+import { isAppPermission, permissionLabel, type AppPermission } from '@/server/auth/permission'
+import { listGrants, type GrantRow } from '@/server/db/read'
+import { participantEnv } from '@/server/env'
+
+const access = Astro.locals.access
+if (access.kind === 'public') throw new Error('画面の権限が解決されていません')
+
+let grants: GrantRow[] | null = null
+if (access.kind === 'ok' && access.permission === 'admin') {
+  grants = await listGrants(participantEnv.appId())
+} else {
+  Astro.response.status = 403
+}
+
+function label(permission: string): string {
+  if (!isAppPermission(permission)) return permission
+  const known: AppPermission = permission
+  return permissionLabel(known)
+}
+---
+
+<Layout title="付与一覧">
+  {grants ? (
+    <section>
+      <h1 class="text-2xl font-semibold">付与一覧</h1>
+      {grants.length === 0 ? (
+        <p class="mt-6 text-gray-600">付与されている利用者はいません</p>
+      ) : (
+        <table class="mt-6 w-full border-collapse text-left text-sm">
+          <thead>
+            <tr class="border-b border-gray-300">
+              <th class="py-2 pr-4 font-medium">メールアドレス</th>
+              <th class="py-2 pr-4 font-medium">名前</th>
+              <th class="py-2 font-medium">権限</th>
+            </tr>
+          </thead>
+          <tbody>
+            {grants.map((grant) => (
+              <tr class="border-b border-gray-200">
+                <td class="py-2 pr-4">{grant.email}</td>
+                <td class="py-2 pr-4">{grant.name}</td>
+                <td class="py-2">{label(grant.permission)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div class="mt-8">
+        <LogoutForm />
+      </div>
+    </section>
+  ) : access.kind === 'no-grant' ? (
+    <Denied message="このアプリを利用する権限がありません" logout />
+  ) : (
+    <Denied message="この画面を利用する権限がありません" />
+  )}
+</Layout>

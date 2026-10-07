@@ -1,0 +1,13 @@
+---
+description: サーバー描画の画面
+globs: src/pages/**/*.astro,src/layouts/**/*.astro,src/components/**/*.astro
+alwaysApply: false
+---
+
+# Astro
+
+- 画面はサーバーで HTML を描画する。React Island は使わない。
+- ページの権限は middleware が `Astro.locals.access` に載せた結果だけを使う。
+- ログアウトは `POST /logout` のフォーム。クライアントから `fetch` しない。
+- `/callback` の応答には `Cache-Control: no-store` と `Referrer-Policy: no-referrer` を付ける。
+- 利用者の email と name はテンプレートのエスケープに任せ、生の HTML へ連結しない。

@@ -1,0 +1,13 @@
+---
+description: Hono の更新ルート
+globs: src/server/api/**/*.ts,src/fetch.ts,src/server/auth/logout.ts
+alwaysApply: false
+---
+
+# API
+
+- 更新は `POST /logout` だけ。Hono に置き、`/api` や `src/pages/api` は使わない。
+- `Origin` が `APP_ORIGIN` と完全一致しない更新は 403「オリジンが不正です」。
+- 未認証の更新は 401「ログインが必要です」。引き渡しへは送らない。
+- ログアウトは自アプリのセッションだけを `DEL` と `SREM` し、`/logged-out` へ 303 する。
+- ブラウザの API 呼び出しは同一オリジンだけ。他オリジン向けの `Access-Control-Allow-Credentials` は返さない。

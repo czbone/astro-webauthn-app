@@ -1,0 +1,22 @@
+---
+description: 共有テーブルの読み取り
+globs: src/lib/prisma.ts,src/server/db/**/*.ts,prisma/**/*
+alwaysApply: false
+---
+
+# Prisma / DB
+
+- Prisma Client は `getPrisma()`（`src/lib/prisma.ts`）だけを使う。
+- import は `@/generated/prisma/client`。
+- 共有テーブルは認証サーバーが所有する。このアプリは `prisma migrate` も seed も実行しない。
+- スキーマに `User.password`、`User.role`、パスキーの公開鍵材料を足さない。
+- 参照 SQL は `src/server/db/read.ts` の `$queryRaw`。資格情報は `COUNT(id)`。
+- 付与一覧は、解決済みの permission が `admin` のときだけ実行する。
+
+```ts
+// ❌ BAD
+await prisma.user.findMany()
+
+// ✅ GOOD
+const user = await findUserById(userId)
+```
