@@ -30,7 +30,7 @@
 - `redirectUris` に `http://app.localhost:4000/callback`
 - 利用者ごとの `AppGrant`（seed 管理者には自動で付かない）
 
-PostgreSQL の `app_participant` と Redis の `app_participant` は、認証サーバーの [participant-access.sql](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/participant/participant-access.sql) に従って作ります。このアプリはロールを作成せず、マイグレーションも実行しません。
+PostgreSQL と Redis は認証サーバーと同じ場所へ、権限を絞った `app_participant` で接続します。手順は [docs/connections.md](docs/connections.md) です。このアプリはロールを作成せず、マイグレーションも実行しません。
 
 ```bash
 pnpm install
