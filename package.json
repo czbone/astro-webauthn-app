@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "prisma generate",
-    "env:check:build": "esbuild src/server/env-check.ts --bundle --platform=node --format=esm --outfile=dist/env-check.mjs"
+    "env:check:build": "esbuild src/server/env-check.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/env-check.mjs"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.7",
