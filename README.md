@@ -13,6 +13,14 @@
 | `/callback` | 引き渡しの戻り |
 | `/logged-out` | ログアウト完了。ここから引き渡しは始めない |
 
+## 動作確認
+
+認証サーバーへ接続したあとの手順は [docs/verification.md](docs/verification.md) です。
+
+## 権限
+
+画面の権限とアクセス制御は [docs/access.md](docs/access.md) です。
+
 ## セットアップ
 
 認証サーバーを `http://auth.localhost:3000` で起動し、管理者が次を登録してからこのアプリを起動します。
