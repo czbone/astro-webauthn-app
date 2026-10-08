@@ -6,11 +6,11 @@
 
 ## 画面
 
-| パス | 内容 |
-| --- | --- |
-| `/` | メールアドレス、名前、権限。ログアウト |
-| `/grants` | 管理者だけの付与一覧 |
-| `/callback` | 引き渡しの戻り |
+| パス          | 内容                                       |
+| ------------- | ------------------------------------------ |
+| `/`           | メールアドレス、名前、権限。ログアウト     |
+| `/grants`     | 管理者だけの付与一覧                       |
+| `/callback`   | 引き渡しの戻り                             |
 | `/logged-out` | ログアウト完了。ここから引き渡しは始めない |
 
 ## 動作確認
@@ -20,6 +20,10 @@
 ## 権限
 
 画面の権限とアクセス制御は [docs/access.md](docs/access.md) です。
+
+## テスト
+
+自動テストの分け方と確認内容は [docs/testing.md](docs/testing.md) です。
 
 ## セットアップ
 
@@ -43,12 +47,15 @@ pnpm dev
 
 ## コマンド
 
-| コマンド | 説明 |
-| --- | --- |
-| `pnpm dev` | `app.localhost:4000` で開発サーバーを起動 |
-| `pnpm test` | 引き渡し判定のユニットテスト |
-| `pnpm lint` | ESLint |
-| `pnpm build` | 本番ビルド |
-| `pnpm db:generate` | 読み取り用 Prisma Client の生成 |
+| コマンド                | 説明                                             |
+| ----------------------- | ------------------------------------------------ |
+| `pnpm dev`              | `app.localhost:4000` で開発サーバーを起動        |
+| `pnpm test`             | 引き渡し判定のユニットテスト                     |
+| `pnpm test:integration` | 起動済みの PostgreSQL と Redis への統合テスト    |
+| `pnpm test:all`         | ユニットテストと統合テスト                       |
+| `pnpm db:ensure-test`   | `TEST_DATABASE_URL` のデータベースが無ければ作る |
+| `pnpm lint`             | ESLint                                           |
+| `pnpm build`            | 本番ビルド                                       |
+| `pnpm db:generate`      | 読み取り用 Prisma Client の生成                  |
 
-共有テーブルの変更は認証サーバーだけが行います。`db:migrate` と `db:seed` はありません。
+統合テストの接続先と準備は [docs/testing.md](docs/testing.md) です。共有テーブルの変更は認証サーバーだけが行います。`db:migrate` と `db:seed` はありません。
