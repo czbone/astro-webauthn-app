@@ -39,20 +39,22 @@ ALTER TABLE "App" ADD COLUMN "defaultPermission" TEXT NULL;
 
 `admin` を新たに既定に設定するときは、保存前に「個別の例外がない現在および今後の全利用者に管理者権限が適用される」ことを確認します。既定の変更は行がない利用者に対して次のリクエストから反映されます。個別の `AppGrant` がある利用者には既定を適用しません。新しい利用者にも `AppGrant` 行は作らず、設定済みの既定を適用します。
 
-認証サーバー自身の `App` 行は対象外です。アプリ一覧では既定を「対象外」と表示して選択欄を出さず、API はその行への `defaultPermission` の設定を拒否します。
+認証サーバー自身の `App` 行は対象外です。`isAuthServer` は永続列にせず、`App.id === authEnv.appId()` から API 応答時に算出します。アプリ一覧では既定を「対象外」と表示して選択欄を出さず、API はその行への `defaultPermission` の設定を拒否します。
 
 管理 API は次の契約にします。
 
 | API | 入出力 |
 | --- | --- |
-| `GET /admin/apps` | 各アプリに `defaultPermission`（`null` / `admin` / `user`）と `isAuthServer`（boolean）を含めて返す。UI は `isAuthServer = true` の行で既定を「対象外」と表示する |
-| `POST /admin/apps` | `id`、`name`、`origin`、`redirectUris`、`defaultPermission` を受け取る。`defaultPermission` は必須で `null` / `admin` / `user` のいずれか。認証サーバー自身の ID は登録できない |
-| `PATCH /admin/apps/:id` | `defaultPermission` が省略された場合は変更しない。指定時は `null` / `admin` / `user` のいずれかを保存する。認証サーバー自身の行への指定は拒否する |
-| `GET /admin/grants` | 例外の `AppGrant` を返す |
-| `PUT /admin/grants` | `userId`、`appId`、`permission` を受け取る。`permission` は正の権限または `none` |
-| `DELETE /admin/grants/:userId/:appId` | 例外行を削除し、対象利用者をアプリ既定の判定に戻す |
+| `GET /admin/apps` | 各アプリに `defaultPermission`（`null` / 現在の正の権限）と `isAuthServer`（`App.id === authEnv.appId()` で算出する boolean）を含めて返す。UI は `isAuthServer = true` の行で既定を「対象外」と表示する |
+| `POST /admin/apps` | `id`、`name`、`origin`、`redirectUris`、`defaultPermission` を受け取る。`defaultPermission` は必須で `null` または現在の正の権限一覧のいずれか。認証サーバー自身の ID は登録できない |
+| `PATCH /admin/apps/:id` | `defaultPermission` が省略された場合は変更しない。指定時は `null` または現在の正の権限のいずれかを保存する。認証サーバー自身の行への指定は拒否する |
+| `GET /admin/grants` | 参加アプリの例外行を返す。各行に `id`、`userId`、`appId`、`permission` を含み、`none` の行も含める。認証サーバー自身の `App.id` の行は返さない |
+| `PUT /admin/grants` | `userId`、`appId`、`permission` を受け取る。`permission` は現在の正の権限または `none`。`(userId, appId)` の行がなければ作成し、あれば権限を上書きする（upsert） |
+| `DELETE /admin/grants/:userId/:appId` | 例外行を削除し、対象利用者をアプリ既定の判定に戻す。認証サーバー自身の `App.id` に対する作成・更新・削除は拒否する |
 
-空文字列、既定値への `none`、一覧にない値は `400` で拒否します。認証サーバー自身のアプリにはこの既定値による入場判定を適用しません。`AppGrant.permission` の `none` は個別拒否として受け付けます。
+既定値と `AppGrant.permission` の正の権限は、[grant.md](grant.md) の正の権限一覧を唯一の正とします。現在の値は `admin` と `user` です。空文字列、既定値への `none`、一覧にない値は `400` で拒否します。`AppGrant.permission` の `none` は個別拒否として受け付けます。認証サーバー自身のアプリへの引き渡しと、そのアプリを対象にした `AppGrant` の作成・更新・削除は拒否し、既定値による入場判定も適用しません。
+
+正の権限を追加するときは、[grant.md](grant.md) の一覧と参加アプリの画面許可に加え、管理 API の入力検証、管理画面の選択肢・表示名、権限の影響を説明する確認文も同じ変更で更新します。新しい権限の既定設定が広い利用者に強い権限を与える場合は、その適用範囲が分かる確認を追加します。
 
 ## 引き渡し
 
@@ -64,6 +66,8 @@ Credential が 1 件以上
 実効権限が正の権限
 redirect_uri が App.redirectUris と完全一致
 ```
+
+`appId` が認証サーバー自身の `App.id` と一致するときは、実効権限の確認やセッション作成を行わず拒否します。`redirect_uri` のオリジンが認証サーバーと同じ場合も拒否します。認証サーバー自身のアプリへの引き渡しは行いません。
 
 実効権限が付与なしのときは、セッションを作らず、参加アプリへ戻しません。応答は 403「引き渡し先のアプリを利用できません」です。`none` の行がある利用者も、既定が `NULL` で行が無い利用者も、同じです。
 
