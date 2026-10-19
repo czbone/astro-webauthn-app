@@ -1,17 +1,22 @@
 # 参加アプリ
 
-[astro-user-webauthn2](https://github.com/czbone/astro-user-webauthn2) の認証サーバーに連携する参加アプリです。ログイン、パスキー、ユーザー作成は行いません。仕様は [participant-app.md](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/participant-app.md) と [multi-app-auth.md](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/multi-app-auth.md) です。
+[astro-user-webauthn2](https://github.com/czbone/astro-user-webauthn2) の認証サーバーに連携する参加アプリです。ログイン、パスキー、ユーザー作成は行いません。仕様は [participant-app.md](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/participant-app.md)、[multi-app-auth.md](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/multi-app-auth.md)、[app-permissions](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/app-permissions/README.md)、[ロールと認可](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/auth-app-role-authorization-spec.md) です。
 
-未ログインの画面は認証サーバーの引き渡しへ送り、`/callback` でコードを消費してホスト専用の `__Host-session` を発行します。画面の権限は `AppGrant.permission` だけを見ます。
+未ログインの画面は認証サーバーの引き渡しへ送り、`/callback` でコードを消費してホスト専用の `__Host-session` を発行します。入場は実効許可が `allow` のときだけです。入場後の画面分けは共通ロール `User.role` を見ます。
+
+この文書は変更後の仕様です。画面とテストの実装は、続く変更でこの文書に合わせます。
 
 ## 画面
 
-| パス          | 内容                                       |
-| ------------- | ------------------------------------------ |
-| `/`           | メールアドレス、名前、権限。ログアウト     |
-| `/grants`     | 管理者だけの付与一覧                       |
-| `/callback`   | 引き渡しの戻り                             |
-| `/logged-out` | ログアウト完了。ここから引き渡しは始めない |
+| パス          | 内容                                                     |
+| ------------- | -------------------------------------------------------- |
+| `/`           | メールアドレス、名前、共通ロール。ログアウト             |
+| `/grants`     | 共通 `admin` だけの利用許可の例外一覧                    |
+| `/roles`      | 共通 `admin` または `manager` のアプリ内ロール           |
+| `/callback`   | 引き渡しの戻り                                           |
+| `/logged-out` | ログアウト完了。ここから引き渡しは始めない               |
+
+未ログインの利用者には、上の画面を出しません。`/logged-out` だけはセッションなしで表示します。
 
 ## 動作確認
 
@@ -32,7 +37,7 @@
 - `App.id` は `app`
 - `origin` は `http://app.localhost:4000`
 - `redirectUris` に `http://app.localhost:4000/callback`
-- 利用者ごとの `AppGrant`（seed 管理者には自動で付かない）
+- 既定が `allow` でないアプリは、利用者ごとの `AppGrant` を `allow` にする。seed 管理者にも自動では付かない
 
 PostgreSQL と Redis は認証サーバーと同じ場所へ、権限を絞った `app_participant` で接続します。手順は [docs/connections.md](docs/connections.md) です。このアプリはロールを作成せず、マイグレーションも実行しません。
 

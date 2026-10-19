@@ -2,7 +2,7 @@
 
 参加アプリは、認証サーバーと同じ PostgreSQL と Redis に接続します。接続文字列のホストとデータベース名は認証サーバーと同じです。ユーザーとパスワードは、読み書きできる認証サーバー用とは別にします。
 
-このアプリはロールを作らず、マイグレーションも実行しません。`db:migrate` と `db:seed` はありません。
+このアプリはロールを作成せず、マイグレーションも実行しません。`db:migrate` と `db:seed` はありません。
 
 ## PostgreSQL
 
@@ -12,11 +12,11 @@
 
 | 対象 | 許す列 |
 | --- | --- |
-| `User` | `id`、`email`、`name` |
+| `User` | `id`、`email`、`name`、`role`、`disabledAt` |
 | `WebAuthnCredential` | `id`、`userId`（件数だけ） |
 | `App`、`AppGrant` | `SELECT` |
 
-`User.password`、`User.role`、パスキーの公開鍵、カウンタ、`credentialId`、`transports` は与えません。
+`User.password`、パスキーの公開鍵、カウンタ、`credentialId`、`transports` は与えません。`role` と `disabledAt` は与えます。
 
 `DATABASE_URL` は、このロールで同じデータベースへ接続します。
 
