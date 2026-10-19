@@ -1,7 +1,5 @@
 # テスト
 
-ここは実装後の確認内容です。現行テストの書き換えは、この文書の更新には含めません。
-
 参加アプリの自動テストです。画面の HTML は起動しません。関数を直接呼び、Redis と PostgreSQL の結果を見ます。手動の画面確認は [verification.md](verification.md)、権限の仕様は [access.md](access.md)、接続の制限は [connections.md](connections.md) です。
 
 ## 分け方

@@ -56,10 +56,6 @@ export const access = defineMiddleware(async (context, next) => {
   }
 
   await slideSession(resolved.token, resolved.tokenHash)
-  context.locals.access = {
-    kind: 'ok',
-    user: resolved.user,
-    permission: resolved.permission
-  }
+  context.locals.access = { kind: 'ok', user: resolved.user }
   return next()
 })

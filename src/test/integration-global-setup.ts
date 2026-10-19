@@ -55,7 +55,9 @@ async function prepareDatabase(adminUrl: string): Promise<void> {
     await pool.query(`REVOKE ALL ON TABLE "WebAuthnCredential" FROM ${PARTICIPANT_USER}`)
     await pool.query(`REVOKE ALL ON TABLE "App" FROM ${PARTICIPANT_USER}`)
     await pool.query(`REVOKE ALL ON TABLE "AppGrant" FROM ${PARTICIPANT_USER}`)
-    await pool.query(`GRANT SELECT (id, email, name) ON TABLE "User" TO ${PARTICIPANT_USER}`)
+    await pool.query(
+      `GRANT SELECT (id, email, name, role, "disabledAt") ON TABLE "User" TO ${PARTICIPANT_USER}`
+    )
     await pool.query(
       `GRANT SELECT (id, "userId") ON TABLE "WebAuthnCredential" TO ${PARTICIPANT_USER}`
     )

@@ -11,13 +11,13 @@ describe('参加アプリの接続権限', () => {
     await resetStores()
   })
 
-  it('User.password は読めず、id と email と name は読める', async () => {
-    const user = { id: 'user-1', email: 'a@example.com', name: '参加者' }
-    await seedAccessUser({ ...user, permission: 'user' })
+  it('User.password は読めず、id、email、name、role、disabledAt は読める', async () => {
+    const user = { id: 'user-1', email: 'a@example.com', name: '参加者', role: 'manager' }
+    await seedAccessUser({ ...user, permission: 'allow' })
     await expect(getPrisma().$queryRaw`SELECT password FROM "User"`).rejects.toThrow(
       /permission denied/i
     )
-    await expect(findUserById(user.id)).resolves.toEqual(user)
+    await expect(findUserById(user.id)).resolves.toEqual({ ...user, disabledAt: null })
   })
 
   it('セッションキーの SET は拒否し、GET はできる', async () => {

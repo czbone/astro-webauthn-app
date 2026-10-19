@@ -14,13 +14,14 @@ describe('listGrants', () => {
     await insertUser({ id: 'user-m', email: 'm@example.com', name: 'えむ' })
     await insertUser({ id: 'user-a', email: 'a@example.com', name: 'えい' })
     await insertUser({ id: 'user-b', email: 'b@example.com', name: 'びー' })
-    await insertGrant({ id: 'g-m', userId: 'user-m', appId: APP_ID, permission: 'admin' })
-    await insertGrant({ id: 'g-a', userId: 'user-a', appId: APP_ID, permission: 'user' })
-    await insertGrant({ id: 'g-b', userId: 'user-b', appId: 'other', permission: 'admin' })
+    await insertUser({ id: 'user-c', email: 'c@example.com', name: 'しい' })
+    await insertGrant({ id: 'g-m', userId: 'user-m', appId: APP_ID, permission: 'none' })
+    await insertGrant({ id: 'g-a', userId: 'user-a', appId: APP_ID, permission: 'allow' })
+    await insertGrant({ id: 'g-b', userId: 'user-b', appId: 'other', permission: 'allow' })
 
     await expect(listGrants(APP_ID)).resolves.toEqual([
-      { email: 'a@example.com', name: 'えい', permission: 'user' },
-      { email: 'm@example.com', name: 'えむ', permission: 'admin' }
+      { email: 'a@example.com', name: 'えい', permission: 'allow' },
+      { email: 'm@example.com', name: 'えむ', permission: 'none' }
     ])
   })
 })

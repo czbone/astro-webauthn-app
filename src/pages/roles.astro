@@ -1,0 +1,28 @@
+---
+import Layout from '@/layouts/MainLayout.astro'
+import Denied from '@/components/Denied.astro'
+import LogoutForm from '@/components/LogoutForm.astro'
+import { canManageAppRoles } from '@/server/auth/permission'
+
+const access = Astro.locals.access
+if (access.kind === 'public') throw new Error('画面の権限が解決されていません')
+
+const allowed = access.kind === 'ok' && canManageAppRoles(access.user.role)
+if (!allowed) Astro.response.status = 403
+---
+
+<Layout title="アプリ内ロール">
+  {allowed ? (
+    <section>
+      <h1 class="text-2xl font-semibold">アプリ内ロール</h1>
+      <p class="mt-6 text-gray-600">割り当てられるアプリ内ロールはありません</p>
+      <div class="mt-8">
+        <LogoutForm />
+      </div>
+    </section>
+  ) : access.kind === 'no-grant' ? (
+    <Denied message="このアプリを利用する権限がありません" logout />
+  ) : (
+    <Denied message="この画面を利用する権限がありません" />
+  )}
+</Layout>

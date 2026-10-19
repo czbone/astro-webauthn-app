@@ -1,11 +1,11 @@
 import {
   countCredentials,
+  findAppDefault,
   findGrantPermission,
   findUserById,
   type PublicUser
 } from '@/server/db/read'
-import type { AppPermission } from '@/server/auth/permission'
-import { isAppPermission } from '@/server/auth/permission'
+import { effectivePermission } from '@/server/auth/permission'
 import { setSessionCookie } from '@/server/auth/cookies'
 import { classifySessionValue } from '@/server/auth/session-record'
 import { hashToken } from '@/server/auth/tokens'
@@ -16,21 +16,22 @@ import { RedisKeys } from '@/server/redis/keys'
 export type { PublicUser }
 
 export type PageAccess =
-  | { kind: 'public' }
-  | { kind: 'no-grant'; user: PublicUser }
-  | { kind: 'ok'; user: PublicUser; permission: AppPermission }
+  { kind: 'public' } | { kind: 'no-grant'; user: PublicUser } | { kind: 'ok'; user: PublicUser }
 
 export type AccessResult =
   | { kind: 'anonymous'; clearSession: boolean }
   | { kind: 'no-passkey' }
   | { kind: 'no-grant'; user: PublicUser }
-  | {
-      kind: 'ok'
-      user: PublicUser
-      permission: AppPermission
-      token: string
-      tokenHash: string
-    }
+  | { kind: 'ok'; user: PublicUser; token: string; tokenHash: string }
+
+function toPublicUser(record: {
+  id: string
+  email: string
+  name: string
+  role: string | null
+}): PublicUser {
+  return { id: record.id, email: record.email, name: record.name, role: record.role }
+}
 
 async function dropSession(tokenHash: string, userId: string | null): Promise<void> {
   const appId = participantEnv.appId()
@@ -56,19 +57,26 @@ export async function resolveAccess(token: string | null): Promise<AccessResult>
     return { kind: 'anonymous', clearSession: true }
   }
 
-  const user = await findUserById(classified.userId)
-  if (!user) {
+  const record = await findUserById(classified.userId)
+  if (!record || record.disabledAt) {
     await dropSession(tokenHash, classified.userId)
     return { kind: 'anonymous', clearSession: true }
   }
 
-  const credentials = await countCredentials(user.id)
+  const credentials = await countCredentials(record.id)
   if (credentials === 0) return { kind: 'no-passkey' }
 
-  const permission = await findGrantPermission(user.id, appId)
-  if (!isAppPermission(permission)) return { kind: 'no-grant', user }
+  const grant = await findGrantPermission(record.id, appId)
+  const app = await findAppDefault(appId)
+  const allowed = effectivePermission({
+    appFound: app.found,
+    grant,
+    defaultPermission: app.found ? app.defaultPermission : null
+  })
+  const user = toPublicUser(record)
+  if (allowed !== 'allow') return { kind: 'no-grant', user }
 
-  return { kind: 'ok', user, permission, token, tokenHash }
+  return { kind: 'ok', user, token, tokenHash }
 }
 
 export async function slideSession(token: string, tokenHash: string): Promise<void> {

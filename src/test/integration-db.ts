@@ -85,11 +85,19 @@ export async function insertUser(input: {
   email: string
   name: string
   password?: string
-  role?: string
+  role?: string | null
+  disabledAt?: Date | null
 }): Promise<void> {
   await getAdminPool().query(
-    'INSERT INTO "User" (id, email, name, password, role) VALUES ($1, $2, $3, $4, $5)',
-    [input.id, input.email, input.name, input.password ?? null, input.role ?? null]
+    'INSERT INTO "User" (id, email, name, password, role, "disabledAt") VALUES ($1, $2, $3, $4, $5, $6)',
+    [
+      input.id,
+      input.email,
+      input.name,
+      input.password ?? null,
+      input.role ?? null,
+      input.disabledAt ?? null
+    ]
   )
 }
 
@@ -98,12 +106,13 @@ export async function insertApp(input: {
   name: string
   origin: string
   redirectUris?: string[]
+  defaultPermission?: string | null
 }): Promise<void> {
   await getAdminPool().query(
-    `INSERT INTO "App" (id, name, origin, "redirectUris")
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO "App" (id, name, origin, "redirectUris", "defaultPermission")
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (id) DO NOTHING`,
-    [input.id, input.name, input.origin, input.redirectUris ?? []]
+    [input.id, input.name, input.origin, input.redirectUris ?? [], input.defaultPermission ?? null]
   )
 }
 
@@ -133,20 +142,25 @@ export async function seedAccessUser(input: {
   permission?: string
   passkey?: boolean
   appId?: string
+  role?: string | null
+  disabledAt?: Date | null
+  defaultPermission?: string | null
 }): Promise<void> {
   const appId = input.appId ?? APP_ID
   await insertApp({
     id: appId,
     name: appId,
     origin: appId === APP_ID ? APP_ORIGIN : `http://${appId}.localhost`,
-    redirectUris: appId === APP_ID ? [`${APP_ORIGIN}/callback`] : []
+    redirectUris: appId === APP_ID ? [`${APP_ORIGIN}/callback`] : [],
+    defaultPermission: input.defaultPermission ?? null
   })
   await insertUser({
     id: input.id,
     email: input.email,
     name: input.name,
     password: 'hidden-password',
-    role: 'admin'
+    role: input.role === undefined ? 'user' : input.role,
+    disabledAt: input.disabledAt ?? null
   })
   if (input.passkey !== false) await insertCredential(input.id, `${input.id}-cred`)
   if (input.permission !== undefined) {

@@ -74,7 +74,7 @@ describe('handleLogout', () => {
 
   it('パスキーが無いときは 403 で消さない', async () => {
     const token = 'token-no-passkey'
-    await seedAccessUser({ ...user, permission: 'admin', passkey: false })
+    await seedAccessUser({ ...user, permission: 'allow', passkey: false })
     await putSession(APP_ID, token, user.id)
     await addSessionIndex(user.id, APP_ID, token)
 

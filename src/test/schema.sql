@@ -3,14 +3,16 @@ CREATE TABLE IF NOT EXISTS "User" (
   email TEXT NOT NULL,
   name TEXT NOT NULL,
   password TEXT,
-  role TEXT
+  role TEXT,
+  "disabledAt" TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS "App" (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   origin TEXT NOT NULL,
-  "redirectUris" TEXT[] NOT NULL
+  "redirectUris" TEXT[] NOT NULL,
+  "defaultPermission" TEXT
 );
 
 CREATE TABLE IF NOT EXISTS "AppGrant" (
@@ -32,3 +34,5 @@ CREATE INDEX IF NOT EXISTS "WebAuthnCredential_userId_idx" ON "WebAuthnCredentia
 
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS password TEXT;
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS role TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "disabledAt" TIMESTAMPTZ;
+ALTER TABLE "App" ADD COLUMN IF NOT EXISTS "defaultPermission" TEXT;

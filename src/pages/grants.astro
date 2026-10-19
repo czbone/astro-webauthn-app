@@ -2,40 +2,40 @@
 import Layout from '@/layouts/MainLayout.astro'
 import Denied from '@/components/Denied.astro'
 import LogoutForm from '@/components/LogoutForm.astro'
-import { isAppPermission, permissionLabel, type AppPermission } from '@/server/auth/permission'
-import { listGrants, type GrantRow } from '@/server/db/read'
+import { canViewGrants, defaultPermissionLabel, grantLabel } from '@/server/auth/permission'
+import { findAppDefault, listGrants, type GrantRow } from '@/server/db/read'
 import { participantEnv } from '@/server/env'
 
 const access = Astro.locals.access
 if (access.kind === 'public') throw new Error('画面の権限が解決されていません')
 
 let grants: GrantRow[] | null = null
-if (access.kind === 'ok' && access.permission === 'admin') {
+let defaultLabel = ''
+if (access.kind === 'ok' && canViewGrants(access.user.role)) {
+  const app = await findAppDefault(participantEnv.appId())
+  defaultLabel = app.found
+    ? defaultPermissionLabel(app.defaultPermission)
+    : '設定エラー。既定からは入場させない'
   grants = await listGrants(participantEnv.appId())
 } else {
   Astro.response.status = 403
 }
-
-function label(permission: string): string {
-  if (!isAppPermission(permission)) return permission
-  const known: AppPermission = permission
-  return permissionLabel(known)
-}
 ---
 
-<Layout title="付与一覧">
+<Layout title="利用許可の例外">
   {grants ? (
     <section>
-      <h1 class="text-2xl font-semibold">付与一覧</h1>
+      <h1 class="text-2xl font-semibold">利用許可の例外</h1>
+      <p class="mt-6">{defaultLabel}</p>
       {grants.length === 0 ? (
-        <p class="mt-6 text-gray-600">付与されている利用者はいません</p>
+        <p class="mt-6 text-gray-600">例外の付与はありません</p>
       ) : (
         <table class="mt-6 w-full border-collapse text-left text-sm">
           <thead>
             <tr class="border-b border-gray-300">
               <th class="py-2 pr-4 font-medium">メールアドレス</th>
               <th class="py-2 pr-4 font-medium">名前</th>
-              <th class="py-2 font-medium">権限</th>
+              <th class="py-2 font-medium">利用許可</th>
             </tr>
           </thead>
           <tbody>
@@ -43,7 +43,7 @@ function label(permission: string): string {
               <tr class="border-b border-gray-200">
                 <td class="py-2 pr-4">{grant.email}</td>
                 <td class="py-2 pr-4">{grant.name}</td>
-                <td class="py-2">{label(grant.permission)}</td>
+                <td class="py-2">{grantLabel(grant.permission)}</td>
               </tr>
             ))}
           </tbody>

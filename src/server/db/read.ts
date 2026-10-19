@@ -4,6 +4,11 @@ export type PublicUser = {
   id: string
   email: string
   name: string
+  role: string | null
+}
+
+export type UserRecord = PublicUser & {
+  disabledAt: Date | null
 }
 
 export type GrantRow = {
@@ -12,9 +17,11 @@ export type GrantRow = {
   permission: string
 }
 
-export async function findUserById(id: string): Promise<PublicUser | null> {
-  const rows = await getPrisma().$queryRaw<PublicUser[]>`
-    SELECT id, email, name FROM "User" WHERE id = ${id}
+export type AppDefault = { found: false } | { found: true; defaultPermission: string | null }
+
+export async function findUserById(id: string): Promise<UserRecord | null> {
+  const rows = await getPrisma().$queryRaw<UserRecord[]>`
+    SELECT id, email, name, role, "disabledAt" FROM "User" WHERE id = ${id}
   `
   return rows[0] ?? null
 }
@@ -31,6 +38,15 @@ export async function findGrantPermission(userId: string, appId: string): Promis
     SELECT permission FROM "AppGrant" WHERE "userId" = ${userId} AND "appId" = ${appId}
   `
   return rows[0]?.permission ?? null
+}
+
+export async function findAppDefault(appId: string): Promise<AppDefault> {
+  const rows = await getPrisma().$queryRaw<Array<{ defaultPermission: string | null }>>`
+    SELECT "defaultPermission" FROM "App" WHERE id = ${appId}
+  `
+  const row = rows[0]
+  if (!row) return { found: false }
+  return { found: true, defaultPermission: row.defaultPermission }
 }
 
 export async function listGrants(appId: string): Promise<GrantRow[]> {

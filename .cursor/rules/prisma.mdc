@@ -8,10 +8,10 @@ alwaysApply: false
 
 - Prisma Client は `getPrisma()`（`src/lib/prisma.ts`）だけを使う。
 - import は `@/generated/prisma/client`。
-- 共有テーブルは認証サーバーが所有する。このアプリは `prisma migrate` も seed も実行しない。
-- スキーマに `User.password`、`User.role`、パスキーの公開鍵材料を足さない。
+- 共有テーブルは認証サーバーが所有する。共有テーブルの `prisma migrate` と seed は実行しない。アプリ内ロールの定義が空のあいだ、このアプリのマイグレーションも実行しない。
+- 共有スキーマに列を足さない。`User.password` とパスキーの公開鍵材料は読まない。読み取りは `id`、`email`、`name`、`role`、`disabledAt`。
 - 参照 SQL は `src/server/db/read.ts` の `$queryRaw`。資格情報は `COUNT(id)`。
-- 付与一覧は、解決済みの permission が `admin` のときだけ実行する。
+- 例外一覧は、共通ロールが `admin` のときだけ実行する。
 
 ```ts
 // ❌ BAD

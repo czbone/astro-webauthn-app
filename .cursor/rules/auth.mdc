@@ -10,13 +10,15 @@ alwaysApply: true
 - セッション Cookie は `__Host-session`。引き渡しの一時 Cookie は `__Host-handoff`。どちらも `Domain` を付けない。
 - セッション Cookie の値は、引き渡し JSON の `token` だけ。新しいトークンは作らない。
 - コードの消費は `GETDEL`。`state` と `redirectUri` は定数時間で比較する。
-- 画面の権限は `AppGrant.permission`（`admin` / `user`）だけ。`User.role` は読まない。
+- 入場は実効許可が `allow` のときだけ。`User.role` は入場に使わない。入場後の画面分けに読む。
+- `disabledAt` があるユーザーは、セッションを破棄して未認証にする。
 - 付与が無いセッションは TTL を延ばさない。ログアウトだけ通す。
 - パスキーが 0 件の画面は `{AUTH_ORIGIN}/setup-passkey` へ送る。更新は 403。
 - 更新の `Origin` は `APP_ORIGIN` と完全一致するときだけ受ける。
+- このアプリに公開パスは無い。未ログインの画面は本文を出さず、引き渡しへ送る。
 
 ## データ
 
-- PostgreSQL は `User` の id / email / name、`WebAuthnCredential` の件数、`App` / `AppGrant` の参照だけ。
+- PostgreSQL は `User` の id / email / name / role / disabledAt、`WebAuthnCredential` の件数、`App` / `AppGrant` の参照だけ。
 - Redis 論理キーは `sess:{APP_ID}:{tokenHash}`、`handoff:{APP_ID}:{codeHash}`、索引は `sess:user:{userId}` の要素 `{APP_ID}/{tokenHash}`。
 - 実際のキーは `{REDIS_KEY_PREFIX}{論理キー}`。`tokenHash` は SHA-256 の hex 小文字。
