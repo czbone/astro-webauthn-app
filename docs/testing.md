@@ -31,7 +31,7 @@ Vitest の project は `unit` と `integration` です。統合テストはフ�
 | `App`、`AppGrant`    | `SELECT`                                      |
 | `sess:*`             | `GET`、`EXPIRE`、`DEL`                        |
 | `handoff:*`          | `GET`、`GETDEL`、`DEL`                        |
-| `sess:user:*`        | `SREM`                                        |
+| `sess:user:*`        | `SREM`、`SMEMBERS`、`DEL`                     |
 
 Redis には、接続時に ioredis が送る `INFO` だけ追加します。`SET` と `SADD` は与えません。パターンには `REDIS_KEY_PREFIX` を付けます。接頭辞は `awa-itest:` に globalSetup のプロセス ID を足したものです。終了時に ACL ユーザーと、その接頭辞のキーを消します。PostgreSQL のロールは次回のために残します。
 
@@ -63,12 +63,13 @@ dotenv のあとで、テストプロセスの環境を次の値に上書きし�
 | セッション JSON | キーが無いときは削除しない。JSON でない値と `userId` が無い値は捨てる。`appId` が違うときは `userId` を残して捨てる。一致すれば続行する |
 | 文字列比較      | 同じ文字列だけ一致する。長さが違えば不一致                                                                                              |
 | Redis キー      | `{接頭辞}sess:{APP_ID}:{tokenHash}`、`handoff:{APP_ID}:{codeHash}`、`sess:user:{userId}`。索引の要素は `{APP_ID}/{tokenHash}`           |
+| 索引要素        | `{appId}/{tokenHash}` は最初の `/` で分ける。スラッシュが無い要素と、スラッシュが端にある要素は解釈しない                                |
 
 ## 統合テスト
 
 ### アクセス解決
 
-`resolveAccess` は、通ったセッションの TTL を延ばしません。延ばすのは `slideSession` だけです。捨てるときは、自分のセッションと索引の `{APP_ID}/{tokenHash}` だけを外します。
+`resolveAccess` は、通ったセッションの TTL を延ばしません。延ばすのは `slideSession` だけです。壊れたセッションと、ユーザー行が無いときは、自分のセッションと索引の `{APP_ID}/{tokenHash}` だけを外します。`disabledAt` があるときは、索引に含まれる全セッションと、今のセッションと、索引を消します。
 
 | 状態 | 結果 |
 | --- | --- |
@@ -76,8 +77,9 @@ dotenv のあとで、テストプロセスの環境を次の値に上書きし�
 | セッションキーが無い | 未認証。Cookie を消す。索引は残す |
 | JSON でない | セッションだけ消す。索引は残す |
 | `appId` が別アプリ | 自分のキーと索引要素だけ外す。別アプリのセッションと要素は残す |
-| `User` が無い、または `disabledAt` がある | 自分のセッションと索引要素を消す。別アプリの要素は残す |
-| パスキーが 0 件 | `no-passkey`。セッションは残し、TTL は 40 秒のまま |
+| `User` が無い | 自分のセッションと索引要素を消す。別アプリの要素は残す |
+| `disabledAt` がある | 未認証。自分と別アプリのセッション、索引を消す |
+| パスキーが 0 件 | `no-passkey`。利用者を含む。セッションは残し、TTL は 40 秒のまま |
 | 付与が無い、または `allow` 以外 | `no-grant`。TTL は 40 秒のまま |
 | 実効許可が `allow` | `ok`。TTL は 40 秒のまま。共通ロールは結果に含める |
 
@@ -102,8 +104,10 @@ dotenv のあとで、テストプロセスの環境を次の値に上書きし�
 | 状態 | 結果 |
 | --- | --- |
 | `Origin` が `APP_ORIGIN` と違う | 403「オリジンが不正です」。Cookie もセッションも索引も残す |
-| 付与が無い | 303 で `/logged-out`。`__Host-session` と `__Host-handoff` の `Max-Age` は 0。自分のセッションと索引要素だけ消す。別アプリは残す |
-| パスキーが 0 件 | 403「先にパスキーを登録してください」。セッションと索引は残す |
+| 付与が無い | 303 で `/logged-out`。`__Host-session` と `__Host-handoff` の `Max-Age` は 0。自分と別アプリのセッション、索引を消す。他の利用者は残す。解釈できない索引要素はキーにしない |
+| パスキーが 0 件 | 303 で `/logged-out`。自分と別アプリのセッション、索引を消す |
+| 索引に自分の要素が無い | 303 で `/logged-out`。自分のセッションを消す |
+| `disabledAt` がある | 401「ログインが必要です」。`__Host-session` の `Max-Age` は 0。自分と別アプリのセッション、索引を消す |
 
 ### 付与一覧
 

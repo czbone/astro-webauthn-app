@@ -19,8 +19,10 @@ Cookie が無い
   → 未認証。Cookie は消さない
 セッションが無い、JSON でない、appId が APP_ID と違う、userId が空
   → キーがあるときは削除し、userId があれば索引から外す。Cookie を消して未認証
-User が無い、または disabledAt がある（id, email, name, role, disabledAt を引く）
-  → セッションと索引を消し、Cookie を消して未認証
+User が無い（id, email, name, role, disabledAt を引く）
+  → 自分のセッションを削除し、索引から自分の要素を外す。Cookie を消して未認証
+disabledAt がある
+  → 索引に含まれる全セッションと、今のセッションと、索引を消す。Cookie を消して未認証
 WebAuthnCredential が 0 件
   → パスキー未登録。TTL も Cookie も延ばさない
 実効許可が allow 以外
@@ -29,7 +31,7 @@ WebAuthnCredential が 0 件
   → 画面ではセッションの TTL と Cookie の Max-Age を延ばす
 ```
 
-索引の要素は `{APP_ID}/{tokenHash}` です。参加アプリが索引から外せるのは、自分のアプリ ID の要素だけです。
+索引の要素は `{appId}/{tokenHash}` です。壊れたセッションやユーザー行が無いときは、自分の要素だけを外します。ログアウトと、無効ユーザーの解決では、索引から得た他アプリのキーも消し、索引自体を消します。
 
 ## 画面
 
@@ -56,9 +58,9 @@ GET と HEAD だけが画面です。`/callback`、`/logged-out`、ファイル�
 
 POST、PUT、PATCH、DELETE は、`Origin` が `APP_ORIGIN` と完全一致するときだけ受けます。`Origin` が無い、または一致しない更新は 403「オリジンが不正です」です。他オリジン向けの `Access-Control-Allow-Credentials` は返しません。
 
-通す更新は `POST /logout` だけです。それ以外は、セッションがあっても 404「見つかりません」です。パスキーが無い更新は 403「先にパスキーを登録してください」、付与が無い更新は 403「このアプリを利用する権限がありません」です。
+通す更新は `POST /logout` だけです。それ以外は、セッションがあっても 404「見つかりません」です。パスキーが無い更新は 403「先にパスキーを登録してください」、付与が無い更新は 403「このアプリを利用する権限がありません」です。ログアウトはこの 403 の対象外です。
 
-ログアウトは、付与が無いセッションでも通ります。自分の `sess:{APP_ID}:{tokenHash}` を削除し、索引からその要素を外し、`__Host-session` と `__Host-handoff` を消して `/logged-out` へ 303 します。認証サーバーのセッションと、他アプリのセッションは残します。
+ログアウトは、付与が無いセッションと、パスキーが 0 件のセッションでも通ります。`userId` は自分の `sess:{APP_ID}:{tokenHash}` から読み、`SMEMBERS sess:user:{userId}` で得た各セッションを削除し、今のセッションと索引も削除します。`__Host-session` と `__Host-handoff` を消して `/logged-out` へ 303 します。認証サーバーの HTTP は呼びません。無効ユーザーは解決の時点で全失効して未認証になるので、ログアウトの応答は 401「ログインが必要です」です。
 
 ## 読むデータ
 

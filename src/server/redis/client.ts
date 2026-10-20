@@ -11,10 +11,14 @@ export const participantRedis = {
   async expire(key: string, seconds: number): Promise<void> {
     await redis.expire(key, seconds)
   },
-  async del(key: string): Promise<void> {
-    await redis.del(key)
+  async del(...keys: string[]): Promise<void> {
+    if (keys.length === 0) return
+    await redis.del(...keys)
   },
   async srem(key: string, member: string): Promise<void> {
     await redis.srem(key, member)
+  },
+  smembers(key: string): Promise<string[]> {
+    return redis.smembers(key)
   }
 }

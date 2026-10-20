@@ -88,27 +88,28 @@ describe('resolveAccess', () => {
     const token = 'no-passkey'
     await seedAccessUser({ ...user, permission: 'allow', passkey: false })
     await putSession(APP_ID, token, user.id)
-    await expect(resolveAccess(token)).resolves.toEqual({ kind: 'no-passkey' })
+    await expect(resolveAccess(token)).resolves.toEqual({ kind: 'no-passkey', user })
     expect(await sessionValue(APP_ID, token)).not.toBeNull()
     await expectTtlUnchanged(token)
   })
 
-  it('無効なユーザーはセッションと自分の索引要素を消す', async () => {
+  it('無効なユーザーは全セッションと索引を消す', async () => {
     const token = 'disabled-user'
+    const otherToken = 'disabled-other'
     await seedAccessUser({
       ...user,
       permission: 'allow',
       disabledAt: new Date('2026-01-01T00:00:00Z')
     })
     await putSession(APP_ID, token, user.id)
+    await putSession('other', otherToken, user.id)
     await addSessionIndex(user.id, APP_ID, token)
-    await addSessionIndex(user.id, 'other', token)
+    await addSessionIndex(user.id, 'other', otherToken)
 
     await expect(resolveAccess(token)).resolves.toEqual({ kind: 'anonymous', clearSession: true })
     expect(await sessionValue(APP_ID, token)).toBeNull()
-    expect(await indexMembers(user.id)).toEqual([
-      RedisKeys.sessionUserMember('other', hashToken(token))
-    ])
+    expect(await sessionValue('other', otherToken)).toBeNull()
+    expect(await indexMembers(user.id)).toEqual([])
   })
 
   it('付与が無いときは寿命を延ばさない', async () => {

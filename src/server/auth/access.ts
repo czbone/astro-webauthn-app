@@ -7,6 +7,7 @@ import {
 } from '@/server/db/read'
 import { effectivePermission } from '@/server/auth/permission'
 import { setSessionCookie } from '@/server/auth/cookies'
+import { revokeAllSessions } from '@/server/auth/revoke'
 import { classifySessionValue } from '@/server/auth/session-record'
 import { hashToken } from '@/server/auth/tokens'
 import { participantEnv } from '@/server/env'
@@ -20,7 +21,7 @@ export type PageAccess =
 
 export type AccessResult =
   | { kind: 'anonymous'; clearSession: boolean }
-  | { kind: 'no-passkey' }
+  | { kind: 'no-passkey'; user: PublicUser }
   | { kind: 'no-grant'; user: PublicUser }
   | { kind: 'ok'; user: PublicUser; token: string; tokenHash: string }
 
@@ -58,13 +59,18 @@ export async function resolveAccess(token: string | null): Promise<AccessResult>
   }
 
   const record = await findUserById(classified.userId)
-  if (!record || record.disabledAt) {
+  if (!record) {
     await dropSession(tokenHash, classified.userId)
     return { kind: 'anonymous', clearSession: true }
   }
+  if (record.disabledAt) {
+    await revokeAllSessions(classified.userId, tokenHash)
+    return { kind: 'anonymous', clearSession: true }
+  }
 
+  const user = toPublicUser(record)
   const credentials = await countCredentials(record.id)
-  if (credentials === 0) return { kind: 'no-passkey' }
+  if (credentials === 0) return { kind: 'no-passkey', user }
 
   const grant = await findGrantPermission(record.id, appId)
   const app = await findAppDefault(appId)
@@ -73,7 +79,6 @@ export async function resolveAccess(token: string | null): Promise<AccessResult>
     grant,
     defaultPermission: app.found ? app.defaultPermission : null
   })
-  const user = toPublicUser(record)
   if (allowed !== 'allow') return { kind: 'no-grant', user }
 
   return { kind: 'ok', user, token, tokenHash }

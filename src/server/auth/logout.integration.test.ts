@@ -6,6 +6,7 @@ import { hashToken } from '@/server/auth/tokens'
 import { RedisKeys } from '@/server/redis/keys'
 import {
   addSessionIndex,
+  getAdminRedis,
   indexMembers,
   putSession,
   resetStores,
@@ -51,14 +52,18 @@ describe('handleLogout', () => {
     ])
   })
 
-  it('付与が無くても自分のセッションと索引要素を消す', async () => {
+  it('付与が無くても全セッションと索引を消す', async () => {
     const token = 'token-no-grant'
     const otherToken = 'token-other'
+    const strangerToken = 'token-stranger'
     await seedAccessUser(user)
     await putSession(APP_ID, token, user.id)
     await putSession('other', otherToken, user.id)
+    await putSession('other', strangerToken, 'user-2')
     await addSessionIndex(user.id, APP_ID, token)
     await addSessionIndex(user.id, 'other', otherToken)
+    await addSessionIndex('user-2', 'other', strangerToken)
+    await getAdminRedis().sadd(RedisKeys.sessionUser(user.id), 'not-a-member')
 
     const { response, cookies } = await runLogout(logoutRequest(token))
     expect(response.status).toBe(303)
@@ -66,25 +71,63 @@ describe('handleLogout', () => {
     expect(cleared(cookies, SESSION_COOKIE)).toBe(true)
     expect(cleared(cookies, HANDOFF_COOKIE)).toBe(true)
     expect(await sessionValue(APP_ID, token)).toBeNull()
-    expect(await sessionValue('other', otherToken)).not.toBeNull()
-    expect(await indexMembers(user.id)).toEqual([
-      RedisKeys.sessionUserMember('other', hashToken(otherToken))
+    expect(await sessionValue('other', otherToken)).toBeNull()
+    expect(await sessionValue('other', strangerToken)).not.toBeNull()
+    expect(await indexMembers(user.id)).toEqual([])
+    expect(await indexMembers('user-2')).toEqual([
+      RedisKeys.sessionUserMember('other', hashToken(strangerToken))
     ])
   })
 
-  it('パスキーが無いときは 403 で消さない', async () => {
+  it('パスキーが無くても全セッションと索引を消す', async () => {
     const token = 'token-no-passkey'
+    const otherToken = 'token-no-passkey-other'
     await seedAccessUser({ ...user, permission: 'allow', passkey: false })
     await putSession(APP_ID, token, user.id)
+    await putSession('auth', otherToken, user.id)
     await addSessionIndex(user.id, APP_ID, token)
+    await addSessionIndex(user.id, 'auth', otherToken)
 
     const { response, cookies } = await runLogout(logoutRequest(token, APP_ORIGIN))
-    expect(response.status).toBe(403)
-    expect(await response.text()).toBe('先にパスキーを登録してください')
-    expect(cookies).toEqual([])
-    expect(await sessionValue(APP_ID, token)).not.toBeNull()
-    expect(await indexMembers(user.id)).toEqual([
-      RedisKeys.sessionUserMember(APP_ID, hashToken(token))
-    ])
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toBe('/logged-out')
+    expect(cleared(cookies, SESSION_COOKIE)).toBe(true)
+    expect(cleared(cookies, HANDOFF_COOKIE)).toBe(true)
+    expect(await sessionValue(APP_ID, token)).toBeNull()
+    expect(await sessionValue('auth', otherToken)).toBeNull()
+    expect(await indexMembers(user.id)).toEqual([])
+  })
+
+  it('索引に無い自分のセッションも消す', async () => {
+    const token = 'token-unindexed'
+    await seedAccessUser({ ...user, permission: 'allow' })
+    await putSession(APP_ID, token, user.id)
+
+    const { response } = await runLogout(logoutRequest(token))
+    expect(response.status).toBe(303)
+    expect(await sessionValue(APP_ID, token)).toBeNull()
+    expect(await indexMembers(user.id)).toEqual([])
+  })
+
+  it('無効なユーザーは全失効したあと 401 になる', async () => {
+    const token = 'token-disabled'
+    const otherToken = 'token-disabled-other'
+    await seedAccessUser({
+      ...user,
+      permission: 'allow',
+      disabledAt: new Date('2026-01-01T00:00:00Z')
+    })
+    await putSession(APP_ID, token, user.id)
+    await putSession('other', otherToken, user.id)
+    await addSessionIndex(user.id, APP_ID, token)
+    await addSessionIndex(user.id, 'other', otherToken)
+
+    const { response, cookies } = await runLogout(logoutRequest(token))
+    expect(response.status).toBe(401)
+    expect(await response.text()).toBe('ログインが必要です')
+    expect(cleared(cookies, SESSION_COOKIE)).toBe(true)
+    expect(await sessionValue(APP_ID, token)).toBeNull()
+    expect(await sessionValue('other', otherToken)).toBeNull()
+    expect(await indexMembers(user.id)).toEqual([])
   })
 })

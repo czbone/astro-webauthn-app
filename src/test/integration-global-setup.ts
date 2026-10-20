@@ -88,7 +88,7 @@ async function prepareRedis(prefix: string): Promise<void> {
       '+info',
       `(~${prefix}sess:* +get +expire +del)`,
       `(~${prefix}handoff:* +get +getdel +del)`,
-      `(~${prefix}sess:user:* +srem)`
+      `(~${prefix}sess:user:* +srem +smembers +del)`
     )
   } catch (error) {
     throw new Error(

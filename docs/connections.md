@@ -38,9 +38,9 @@ Redis のユーザーは、全参加アプリで `app_participant` の1人です
 | --- | --- |
 | `sess:*` | `GET`、`EXPIRE`、`DEL` |
 | `handoff:*` | `GET`、`GETDEL`、`DEL` |
-| `sess:user:*` | `SREM` |
+| `sess:user:*` | `SREM`、`SMEMBERS`、`DEL` |
 
-引き渡しコードの消費は `GETDEL` です。このアプリが操作するのは `sess:{APP_ID}:*` と `handoff:{APP_ID}:*` だけです。
+引き渡しコードの消費は `GETDEL` です。普段操作するのは `sess:{APP_ID}:*` と `handoff:{APP_ID}:*` だけです。ログアウトと、無効ユーザーのセッション解決では、索引から得た他アプリのセッションキーも削除します。
 
 `REDIS_URL` は、このユーザーで同じ Redis へ接続します。
 
@@ -54,4 +54,4 @@ REDIS_URL="redis://app_participant:replace-me@redis-host:6379/"
 
 ## 切り替えの確認
 
-`DATABASE_URL` と `REDIS_URL` を参加アプリ用に変えて再起動したあと、`APP_ORIGIN/` が「ログイン中」になり、ログアウトでそのホストの `__Host-session` が消えれば、制限した接続で足りています。画面の確認手順は [verification.md](verification.md) です。
+`DATABASE_URL` と `REDIS_URL` を参加アプリ用に変えて再起動したあと、`APP_ORIGIN/` が「ログイン中」になり、ログアウトでそのホストの `__Host-session` と、同じユーザーの他セッションが消えれば、制限した接続で足りています。画面の確認手順は [verification.md](verification.md) です。
