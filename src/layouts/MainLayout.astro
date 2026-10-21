@@ -6,9 +6,11 @@ interface Props {
 const { title } = Astro.props
 import '@/styles/global.css'
 
+import LogoutForm from '@/components/LogoutForm.astro'
 import { canManageAppRoles, canViewGrants } from '@/server/auth/permission'
 
 const access = Astro.locals.access
+const hasSession = access.kind === 'ok' || access.kind === 'no-grant'
 const showGrants = access.kind === 'ok' && canViewGrants(access.user.role)
 const showRoles = access.kind === 'ok' && canManageAppRoles(access.user.role)
 Astro.response.headers.set('Cache-Control', 'no-store')
@@ -28,20 +30,28 @@ Astro.response.headers.set('Cache-Control', 'no-store')
         <a class="text-lg font-semibold" href="/">
           参加アプリ
         </a>
-        {(showGrants || showRoles) && (
-          <div class="flex gap-4 text-sm">
-            {showGrants && (
-              <a class="text-blue-700 underline" href="/grants">
-                利用許可の例外
-              </a>
-            )}
-            {showRoles && (
-              <a class="text-blue-700 underline" href="/roles">
-                アプリ内ロール
-              </a>
-            )}
-          </div>
-        )}
+        <div class="flex items-center gap-4 text-sm">
+          {showGrants && (
+            <a class="text-blue-700 underline" href="/grants">
+              利用許可の例外
+            </a>
+          )}
+          {showRoles && (
+            <a class="text-blue-700 underline" href="/roles">
+              アプリ内ロール
+            </a>
+          )}
+          {hasSession ? (
+            <LogoutForm />
+          ) : (
+            <a
+              class="rounded-md bg-gray-900 px-4 py-2 font-medium text-white hover:bg-gray-700"
+              href="/"
+            >
+              ログイン
+            </a>
+          )}
+        </div>
       </nav>
     </header>
     <main class="mx-auto max-w-3xl px-4 py-10">

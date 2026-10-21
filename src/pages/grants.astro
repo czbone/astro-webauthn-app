@@ -1,7 +1,6 @@
 ---
 import Layout from '@/layouts/MainLayout.astro'
 import Denied from '@/components/Denied.astro'
-import LogoutForm from '@/components/LogoutForm.astro'
 import { canViewGrants, defaultPermissionLabel, grantLabel } from '@/server/auth/permission'
 import { findAppDefault, listGrants, type GrantRow } from '@/server/db/read'
 import { participantEnv } from '@/server/env'
@@ -49,12 +48,9 @@ if (access.kind === 'ok' && canViewGrants(access.user.role)) {
           </tbody>
         </table>
       )}
-      <div class="mt-8">
-        <LogoutForm />
-      </div>
     </section>
   ) : access.kind === 'no-grant' ? (
-    <Denied message="このアプリを利用する権限がありません" logout />
+    <p class="text-gray-800">このアプリを利用する権限がありません</p>
   ) : (
     <Denied message="この画面を利用する権限がありません" />
   )}

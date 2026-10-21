@@ -1,7 +1,5 @@
 ---
 import Layout from '@/layouts/MainLayout.astro'
-import Denied from '@/components/Denied.astro'
-import LogoutForm from '@/components/LogoutForm.astro'
 import { roleLabel } from '@/server/auth/permission'
 
 const access = Astro.locals.access
@@ -41,11 +39,8 @@ if (!profile) Astro.response.status = 403
           <dd>利用可</dd>
         </div>
       </dl>
-      <div class="mt-8">
-        <LogoutForm />
-      </div>
     </section>
   ) : (
-    <Denied message="このアプリを利用する権限がありません" logout />
+    <p class="text-gray-800">このアプリを利用する権限がありません</p>
   )}
 </Layout>
