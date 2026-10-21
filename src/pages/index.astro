@@ -2,7 +2,7 @@
 import Layout from '@/layouts/MainLayout.astro'
 import Denied from '@/components/Denied.astro'
 import LogoutForm from '@/components/LogoutForm.astro'
-import { canManageAppRoles, canViewGrants, roleLabel } from '@/server/auth/permission'
+import { roleLabel } from '@/server/auth/permission'
 
 const access = Astro.locals.access
 if (access.kind === 'public') throw new Error('画面の権限が解決されていません')
@@ -12,9 +12,7 @@ const profile =
     ? {
         email: access.user.email,
         name: access.user.name,
-        role: roleLabel(access.user.role),
-        grants: canViewGrants(access.user.role),
-        roles: canManageAppRoles(access.user.role)
+        role: roleLabel(access.user.role)
       }
     : null
 
@@ -43,20 +41,6 @@ if (!profile) Astro.response.status = 403
           <dd>利用可</dd>
         </div>
       </dl>
-      {profile.grants && (
-        <p class="mt-6">
-          <a class="text-blue-700 underline" href="/grants">
-            利用許可の例外
-          </a>
-        </p>
-      )}
-      {profile.roles && (
-        <p class="mt-6">
-          <a class="text-blue-700 underline" href="/roles">
-            アプリ内ロール
-          </a>
-        </p>
-      )}
       <div class="mt-8">
         <LogoutForm />
       </div>
