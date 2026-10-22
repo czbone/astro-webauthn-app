@@ -8,7 +8,7 @@
 
 管理者が、認証サーバーと同じデータベースへロール `app_participant` を一度作ります。アプリを増やすたびにロールは作りません。ひな型は認証サーバーの [participant-access.sql](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/participant/participant-access.sql) です。`CREATE ROLE` と `GRANT` はコメントアウトされているので、データベース名とパスワードを置き換えてから実行します。
 
-与える参照は次だけです。
+付与する参照権限は次のとおりです。
 
 | 対象 | 許す列 |
 | --- | --- |
@@ -16,7 +16,7 @@
 | `WebAuthnCredential` | `id`、`userId`（件数だけ） |
 | `App`、`AppGrant` | `SELECT` |
 
-`User.password`、パスキーの公開鍵、カウンタ、`credentialId`、`transports` は与えません。`role` と `disabledAt` は与えます。
+`User.password`、パスキーの公開鍵、カウンタ、`credentialId`、`transports` への参照権限は付与しません。`role` と `disabledAt` への参照権限は付与します。
 
 `DATABASE_URL` は、このロールで同じデータベースへ接続します。
 
@@ -30,7 +30,7 @@ DATABASE_URL="postgresql://app_participant:replace-me@db-host:5432/database_name
 
 Redis のユーザーは、全参加アプリで `app_participant` の1人です。アプリごとに作りません。認証サーバーの `REDIS_URL` は、読み書きできるユーザーのままです。
 
-認証サーバーに `PARTICIPANT_REDIS_PASSWORD` があるとき、起動後の最初のリクエストでこのユーザーを上書きします。未設定なら作りません。パスワードは PostgreSQL の `app_participant` とは別です。設定したあとは、認証サーバーを再起動してから参加アプリを接続します。
+認証サーバーに `PARTICIPANT_REDIS_PASSWORD` が設定されている場合、起動後の最初のリクエストでこのユーザーのパスワードを設定します。未設定の場合はユーザーを作成しません。パスワードは PostgreSQL の `app_participant` 用とは別のものです。設定後、認証サーバーを再起動してから参加アプリを接続します。
 
 許す操作は次だけです。`KEYS`、`SCAN`、セッションの `SET`、索引への `SADD` はありません。
 
@@ -40,7 +40,7 @@ Redis のユーザーは、全参加アプリで `app_participant` の1人です
 | `handoff:*` | `GET`、`GETDEL`、`DEL` |
 | `sess:user:*` | `SREM`、`SMEMBERS`、`DEL` |
 
-引き渡しコードの消費は `GETDEL` です。普段操作するのは `sess:{APP_ID}:*` と `handoff:{APP_ID}:*` だけです。ログアウトと、無効ユーザーのセッション解決では、索引から得た他アプリのセッションキーも削除します。
+引き渡しコードの消費は `GETDEL` です。通常操作するキーは `sess:{APP_ID}:*` と `handoff:{APP_ID}:*` だけです。ログアウト時と無効ユーザーのセッション解決時には、索引から得た他アプリのセッションキーも削除します。
 
 `REDIS_URL` は、このユーザーで同じ Redis へ接続します。
 
@@ -48,10 +48,10 @@ Redis のユーザーは、全参加アプリで `app_participant` の1人です
 REDIS_URL="redis://app_participant:replace-me@redis-host:6379/"
 ```
 
-`replace-me` は `PARTICIPANT_REDIS_PASSWORD` と同じ値です。Coolify の Redis ユーザーをこのアプリでも使うと、この制限は掛からず、セッションの `SET` もできます。
+`replace-me` は `PARTICIPANT_REDIS_PASSWORD` と同じ値です。Coolify の Redis ユーザーをこのアプリでも使うと、この制限は適用されず、セッションの `SET` も可能になります。
 
 `REDIS_KEY_PREFIX` と `SESSION_MAX_AGE_SECONDS` は、認証サーバーと同じ値にします。未設定のプレフィックスは空、未設定のセッション寿命は 2592000 秒です。プレフィックスがあるとき、実際のキーは `{REDIS_KEY_PREFIX}{論理キー}` です。
 
 ## 切り替えの確認
 
-`DATABASE_URL` と `REDIS_URL` を参加アプリ用に変えて再起動したあと、`APP_ORIGIN/` が「ログイン中」になり、ログアウトでそのホストの `__Host-session` と、同じユーザーの他セッションが消えれば、制限した接続で足りています。画面の確認手順は [verification.md](verification.md) です。
+`DATABASE_URL` と `REDIS_URL` を参加アプリ用に変更して再起動したあと、`APP_ORIGIN/` に「ログイン中」と表示され、ログアウトによってそのホストの `__Host-session` と同じユーザーの他のセッションが削除されれば、制限付きの接続で問題ありません。画面の確認手順は [verification.md](verification.md) を参照してください。

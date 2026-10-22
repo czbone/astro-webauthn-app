@@ -1,10 +1,10 @@
 # テスト
 
-参加アプリの自動テストです。画面の HTML は起動しません。関数を直接呼び、Redis と PostgreSQL の結果を見ます。手動の画面確認は [verification.md](verification.md)、権限の仕様は [access.md](access.md)、接続の制限は [connections.md](connections.md) です。
+この文書では、参加アプリの自動テストについて説明します。画面を表示するサーバーは起動せず、関数を直接呼び出して Redis と PostgreSQL の結果を確認します。手動での画面確認は [verification.md](verification.md)、権限の仕様は [access.md](access.md)、接続の制限は [connections.md](connections.md) を参照してください。
 
 ## 分け方
 
-Vitest の project は `unit` と `integration` です。統合テストはファイルを直列に実行し、ファイルごとにモジュールを分けます。
+Vitest の project は `unit` と `integration` の2つです。統合テストでは、ファイルを直列に実行し、各ファイルでモジュールを分離します。
 
 | コマンド                | 対象                                               |
 | ----------------------- | -------------------------------------------------- |
@@ -18,11 +18,11 @@ Vitest の project は `unit` と `integration` です。統合テストはフ�
 
 テストランナーはコンテナを起動しません。起動済みの PostgreSQL と Redis へ接続します。
 
-`TEST_DATABASE_URL` は必須です。開発用 `DATABASE_URL` とホスト、ポート、データベース名が同じときは止めます。データベース名は単純な識別子にします。未作成なら `pnpm db:ensure-test` を実行します。この接続はテーブルとロールを作れるユーザーです。
+`TEST_DATABASE_URL` は必須です。開発用 `DATABASE_URL` とホスト、ポート、データベース名が一致する場合は、テストを中止します。データベース名には単純な識別子を使います。データベースがまだ作成されていない場合は、`pnpm db:ensure-test` を実行します。この URL には、テーブルとロールを作成できるユーザーを指定します。
 
-`TEST_REDIS_URL` は任意です。未設定のときは `redis://localhost:6379/` です。この接続は `SET` と `ACL SETUSER` ができるユーザーです。
+`TEST_REDIS_URL` は任意です。未設定の場合は `redis://localhost:6379/` を使います。この URL には、`SET` と `ACL SETUSER` を実行できるユーザーを指定します。
 
-アプリ本体が見る接続は、専用データベース上のテスト用ロール `app_participant_itest` と、同名の Redis ACL ユーザーです。開発用の `app_participant` は変更しません。列権限は [connections.md](connections.md) と同じ範囲です。
+アプリ本体は、専用データベース上のテスト用ロール `app_participant_itest` と、同名の Redis ACL ユーザーで接続します。開発用の `app_participant` は変更しません。列に対する権限は [connections.md](connections.md) と同じです。
 
 | 対象                 | 許す操作                                      |
 | -------------------- | --------------------------------------------- |
@@ -33,13 +33,13 @@ Vitest の project は `unit` と `integration` です。統合テストはフ�
 | `handoff:*`          | `GET`、`GETDEL`、`DEL`                        |
 | `sess:user:*`        | `SREM`、`SMEMBERS`、`DEL`                     |
 
-Redis には、接続時に ioredis が送る `INFO` だけ追加します。`SET` と `SADD` は与えません。パターンには `REDIS_KEY_PREFIX` を付けます。接頭辞は `awa-itest:` に globalSetup のプロセス ID を足したものです。終了時に ACL ユーザーと、その接頭辞のキーを消します。PostgreSQL のロールは次回のために残します。
+Redis では、接続時に ioredis が送信する `INFO` だけを追加で許可します。`SET` と `SADD` は許可しません。キーのパターンには `REDIS_KEY_PREFIX` を付けます。この接頭辞は `awa-itest:` に globalSetup のプロセス ID を付加したものです。終了時には ACL ユーザーと、その接頭辞が付いたキーを削除します。PostgreSQL のロールは次回の実行に備えて残します。
 
-スキーマは、読む 4 テーブルだけを専用データベースへ用意します。`User` には読む列の `role` と `disabledAt`、拒否確認用の `password` を含めます。マイグレーションは実行しません。
+専用データベースには、参照する4テーブルだけを用意します。`User` には、アプリが参照する `id`、`email`、`name`、`role`、`disabledAt` と、読み取り拒否の確認に使う `password` を含めます。マイグレーションは実行しません。
 
-各テストの前に、管理接続で 4 テーブルを空にし、接頭辞の付いた Redis キーだけを `SCAN` と `DEL` で消します。接頭辞は `awa-itest:` で始まり、空白と括弧を含みません。
+各テストの前に、管理接続で4テーブルのデータを削除し、接頭辞が付いた Redis キーだけを `SCAN` と `DEL` で削除します。接頭辞は `awa-itest:` で始まり、空白や括弧を含みません。
 
-dotenv のあとで、テストプロセスの環境を次の値に上書きします。開発用 `.env` の接続先はアプリコードから見えません。
+dotenv の読み込み後に、テストプロセスの環境変数を次の値で上書きします。アプリコードからは、開発用 `.env` の接続先を参照できません。
 
 | 変数                      | 値                           |
 | ------------------------- | ---------------------------- |
@@ -56,20 +56,20 @@ dotenv のあとで、テストプロセスの環境を次の値に上書きし�
 
 | 対象            | 確認                                                                                                                                    |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Cookie          | `Path=/`、`Max-Age`、`SameSite=Lax`、`HttpOnly`、`Secure` だけを付ける。値はエンコードして戻す                                          |
+| Cookie          | `Path=/`、`Max-Age`、`SameSite=Lax`、`HttpOnly`、`Secure` だけを付ける。値をエンコードし、正しく復元する                                |
 | 戻りパス        | `/grants` とクエリは残す。外部 URL、`/callback`、`/logged-out`、空、バックスラッシュ、NUL は `/` にする                                 |
 | Origin          | `APP_ORIGIN` と完全一致するときだけ許可する。末尾の `/` も不一致                                                                        |
 | 正規ホスト      | 別ホストの GET は同じパスとクエリへ 302 する。同じホストと変更系はそのまま                                                              |
 | セッション JSON | キーが無いときは削除しない。JSON でない値と `userId` が無い値は捨てる。`appId` が違うときは `userId` を残して捨てる。一致すれば続行する |
 | 文字列比較      | 同じ文字列だけ一致する。長さが違えば不一致                                                                                              |
 | Redis キー      | `{接頭辞}sess:{APP_ID}:{tokenHash}`、`handoff:{APP_ID}:{codeHash}`、`sess:user:{userId}`。索引の要素は `{APP_ID}/{tokenHash}`           |
-| 索引要素        | `{appId}/{tokenHash}` は最初の `/` で分ける。スラッシュが無い要素と、スラッシュが端にある要素は解釈しない                                |
+| 索引要素        | `{appId}/{tokenHash}` は最初の `/` で分割する。スラッシュが無い要素と、スラッシュが先頭または末尾にある要素は解釈しない                |
 
 ## 統合テスト
 
 ### アクセス解決
 
-`resolveAccess` は、通ったセッションの TTL を延ばしません。延ばすのは `slideSession` だけです。壊れたセッションと、ユーザー行が無いときは、自分のセッションと索引の `{APP_ID}/{tokenHash}` だけを外します。`disabledAt` があるときは、索引に含まれる全セッションと、今のセッションと、索引を消します。
+`resolveAccess` は、認証を通過したセッションの TTL を延ばしません。TTL を延ばすのは `slideSession` だけです。セッションが壊れている場合、またはユーザー行が存在しない場合は、自分のセッションと索引の `{APP_ID}/{tokenHash}` だけを削除します。`disabledAt` がある場合は、索引に含まれる全セッション、現在のセッション、および索引を削除します。
 
 | 状態 | 結果 |
 | --- | --- |
@@ -87,15 +87,15 @@ dotenv のあとで、テストプロセスの環境を次の値に上書きし�
 
 ### 引き渡し
 
-`consumeHandoff` は、Cookie の `state` がクエリと一致したあとで `GETDEL` します。
+`consumeHandoff` は、Cookie の `state` とクエリが一致することを確認してから `GETDEL` を実行します。
 
 | 状態 | 結果 |
 | --- | --- |
-| コード、`state`、`redirectUri`、セッションの `userId` が一致 | トークンと `/grants` を返す。キーは消え、二度目は失敗する |
-| Cookie の `state` がクエリと違う | 失敗し、キーを残す |
-| レコードの `state` が違う | 失敗し、コードは戻らない |
-| `redirectUri` が `{APP_ORIGIN}/callback` と違う | 失敗し、コードは戻らない |
-| セッションの `userId` がレコードと違う | 失敗し、コードは戻らない。セッションキーは残す |
+| コード、`state`、`redirectUri`、セッションの `userId` が一致 | トークンと `/grants` を返す。キーは削除され、2回目の呼び出しは失敗する |
+| Cookie の `state` がクエリと異なる | 失敗し、キーは残る |
+| レコードの `state` が異なる | 失敗し、コードは再利用できない |
+| `redirectUri` が `{APP_ORIGIN}/callback` と異なる | 失敗し、コードは再利用できない |
+| セッションの `userId` がレコードと異なる | 失敗し、コードは再利用できない。セッションキーは残る |
 
 ### ログアウト
 
@@ -104,7 +104,7 @@ dotenv のあとで、テストプロセスの環境を次の値に上書きし�
 | 状態 | 結果 |
 | --- | --- |
 | `Origin` が `APP_ORIGIN` と違う | 403「オリジンが不正です」。Cookie もセッションも索引も残す |
-| 付与が無い | 303 で `/logged-out`。`__Host-session` と `__Host-handoff` の `Max-Age` は 0。自分と別アプリのセッション、索引を消す。他の利用者は残す。解釈できない索引要素はキーにしない |
+| 付与が無い | 303 で `/logged-out`。`__Host-session` と `__Host-handoff` の `Max-Age` は 0。自分と別アプリのセッション、索引を削除する。他の利用者のデータは残す。解釈できない索引要素はキーとして扱わない |
 | パスキーが 0 件 | 303 で `/logged-out`。自分と別アプリのセッション、索引を消す |
 | 索引に自分の要素が無い | 303 で `/logged-out`。自分のセッションを消す |
 | `disabledAt` がある | 401「ログインが必要です」。`__Host-session` の `Max-Age` は 0。自分と別アプリのセッション、索引を消す |

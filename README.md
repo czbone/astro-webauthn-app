@@ -2,6 +2,8 @@
 
 [astro-user-webauthn2](https://github.com/czbone/astro-user-webauthn2) の認証サーバーに連携する参加アプリです。ログイン、パスキー、ユーザー作成は行いません。仕様は [participant-app.md](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/participant-app.md)、[multi-app-auth.md](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/multi-app-auth.md)、[app-permissions](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/app-permissions/README.md)、[ロールと認可](https://github.com/czbone/astro-user-webauthn2/blob/main/planning/auth-app-role-authorization-spec.md) です。
 
+このリポジトリをひな型にして新しい参加アプリを作る手順は [docs/building.md](docs/building.md) です。
+
 未ログインの画面は認証サーバーの引き渡しへ送り、`/callback` でコードを消費してホスト専用の `__Host-session` を発行します。入場は実効許可が `allow` のときだけです。入場後の画面分けは共通ロール `User.role` を見ます。
 
 ## 画面
